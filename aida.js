@@ -1,4 +1,3 @@
-// ai_minecraft.js
 import mineflayer from "mineflayer";
 import fetch from "node-fetch";
 
