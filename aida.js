@@ -77,8 +77,8 @@ async function processCommand(username, message) {
     switch (command.action) {
       case "follow_player": {
         const success = followPlayer(bot, username);
-        const prompt = success 
-          ? `Aku baru saja mulai mengikuti ${username}. Beri respons singkat dan positif.` 
+         const prompt = success 
+          ? `Aku akan mulai mengikuti ${username}. Berikan salah satu dari banyak kemungkinan respons singkat dan semangat, contohnya: "Siap, OTW!", "Oke, aku di belakangmu!", atau "Ayo berangkat!".` 
           : `Aku tidak bisa menemukan ${username} untuk diikuti. Beritahu dia kalau aku tidak bisa melihatnya.`;
         const reply = await chatGeneratorAI(prompt);
         bot.chat(reply);
@@ -86,7 +86,7 @@ async function processCommand(username, message) {
       }
       case "stop_moving": {
         stopMoving(bot);
-        const prompt = `Aku baru saja berhenti bergerak karena disuruh ${username}. Beri respons singkat bahwa aku akan menunggu di sini.`;
+         const prompt = `Aku akan berhenti dan menunggu di sini sesuai perintah ${username}. Berikan salah satu dari banyak kemungkinan respons santai, contohnya: "Oke, aku tunggu di sini ya.", "Siap, kabari aja kalau mau lanjut.", atau "Aku diem di sini dulu."`;
         const reply = await chatGeneratorAI(prompt);
         bot.chat(reply);
         break;
