@@ -1,7 +1,7 @@
 // mining.js (Versi dengan penerjemah material)
 import { Movements } from 'mineflayer-pathfinder';
 import minecraftData from 'minecraft-data';
-import { translateAliasToBestBlock } from './materials.js'; // Impor penerjemah
+import { translateAliasToBestBlock } from '../materials.js'; // Impor penerjemah
 
 const RARE_ITEMS = ['diamond', 'gold_ore', 'emerald', 'ancient_debris'];
 

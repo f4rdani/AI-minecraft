@@ -5,9 +5,9 @@ import pkg from "mineflayer-pathfinder";
 const { pathfinder, Movements } = pkg;
 import minecraftData from "minecraft-data";
 
-import { followPlayer, stopMoving } from "./actions.js";
-import { getStatusData, getInventorySummary } from "./status.js";
-import { collectBlocks } from "./mining.js";
+import { followPlayer, stopMoving } from "./features/actions.js";
+import { getStatusData, getInventorySummary } from "./features/status.js";
+import { collectBlocks } from "./features/mining.js";
 import { plugin as collectBlockPlugin } from 'mineflayer-collectblock';
 
 // === KONFIGURASI ===
