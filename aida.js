@@ -1,19 +1,12 @@
-// aida.js (Struktur Utama)
+// aida.js (Versi dengan Eksekutor Kode Dinamis)
 import mineflayer from "mineflayer";
 import pkg from "mineflayer-pathfinder";
 const { pathfinder, Movements } = pkg;
 import minecraftData from "minecraft-data";
 import { plugin as collectBlockPlugin } from 'mineflayer-collectblock';
 
-// Impor dari file utilitas
-import { commandClassifierAI, chatGeneratorAI } from "./utils/ai_handler.js";
-
-// Impor fitur NON-AUTO
-import { followPlayer, stopMoving } from "./features/moving.js";
-import { getStatusData, getInventorySummary } from "./features/status.js";
-import { collectBlocks } from "./features/mining.js";
-
-// Impor fitur AUTO
+import { codeGeneratorAI } from "./utils/ai_handler.js";
+import { skills } from "./features/skill_library.js"; // Impor pustaka skill
 import { checkProactiveStatus } from "./auto_tasks/auto_status.js";
 
 // === KONFIGURASI ===
@@ -28,78 +21,42 @@ const bot = mineflayer.createBot({
 bot.loadPlugin(pathfinder);
 bot.loadPlugin(collectBlockPlugin);
 
-// Variabel untuk menyimpan riwayat percakapan
 let chatHistory = [];
 
 // === OTAK PEMROSES PERINTAH ===
 async function processCommand(username, message) {
   try {
-    // 1. AI membaca chat dan memilih case (mengklasifikasikan aksi)
-    const command = await commandClassifierAI(message, chatHistory);
-    console.log(`[AI Command]`, command);
-    
-    // Tambahkan pesan user ke riwayat
+    // 1. AI menghasilkan kode berdasarkan chat
+    const codeToExecute = await codeGeneratorAI(message, username, chatHistory);
+    console.log(`[AI Code]`, codeToExecute);
+
     chatHistory.push({ role: 'user', content: message });
+    let reply = "";
 
-    let reply = ""; // Variabel untuk menampung balasan Aida
-
-    switch (command.action) {
-      case "follow_player": {
-        const success = followPlayer(bot, username);
-        const prompt = success 
-          ? `Aku baru saja mulai mengikuti ${username}. Beri respons singkat dan positif, contohnya "Baik, Master, saya ikuti!"` 
-          : `Aku tidak bisa menemukan ${username} untuk diikuti. Beritahu dia kalau aku tidak bisa melihatnya.`;
-        reply = await chatGeneratorAI(prompt, chatHistory);
-        break;
-      }
-      case "stop_moving": {
-        stopMoving(bot);
-        const prompt = `Aku baru saja berhenti bergerak karena disuruh ${username}. Beri respons singkat bahwa aku akan menunggu di sini, contohnya "Siap, saya menunggu perintah selanjutnya."`;
-        reply = await chatGeneratorAI(prompt, chatHistory);
-        break;
-      }
-      case "report_status": {
-        const statusData = getStatusData(bot);
-        const prompt = `Temanku bertanya soal kondisiku. Ini datanya: ${JSON.stringify(statusData)}. Tolong buatkan laporan yang santai, jangan kaku seperti membaca data.`;
-        reply = await chatGeneratorAI(prompt, chatHistory);
-        break;
-      }
-      case "list_inventory": {
-        const inventory = getInventorySummary(bot);
-        const prompt = inventory 
-          ? `Temanku bertanya apa saja item yang aku punya. Ini daftarnya dalam format JSON: ${JSON.stringify(inventory)}. Sebutkan SEMUA item beserta jumlahnya dengan gaya santai, jangan seperti membaca daftar.`
-          : `Aku diminta menunjukkan itemku, tapi tasku kosong. Beritahu temanku kalau aku tidak punya apa-apa.`;
-        reply = await chatGeneratorAI(prompt, chatHistory);
-        break;
-      }
-      case "collect_blocks": {
-        const item = command.item || "kayu";
-        const count = command.count || 5;
-        // Fungsi mining akan menangani chatnya sendiri, jadi tidak perlu `reply`
-        collectBlocks(bot, item, count, (prompt) => chatGeneratorAI(prompt, chatHistory));
-        break;
-      }
-      case "chat":
-      default: {
-        reply = await chatGeneratorAI(message, chatHistory);
-        break;
-      }
+    // 2. Cek apakah AI menghasilkan kode atau chat biasa
+    if (codeToExecute.startsWith("skills.")) {
+      // Jika ini kode, jalankan dengan aman menggunakan constructor AsyncFunction
+      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      const executor = new AsyncFunction('bot', 'skills', `return ${codeToExecute}`);
+      reply = await executor(bot, skills);
+    } else {
+      // Jika ini chat biasa, gunakan sebagai balasan
+      reply = codeToExecute.replace(/"/g, ''); // Hapus tanda kutip jika ada
     }
     
     if (reply) {
       bot.chat(reply);
-      // Tambahkan balasan Aida ke riwayat
       chatHistory.push({ role: 'assistant', content: reply });
     }
 
-    // Batasi riwayat agar tidak terlalu panjang (misal: 10 percakapan terakhir)
+    // Batasi riwayat agar tidak terlalu panjang
     if (chatHistory.length > 10) {
       chatHistory = chatHistory.slice(-10);
     }
 
   } catch (err) {
-    console.error("❌ Error saat memproses perintah:", err);
-    bot.chat("Duh, aku agak bingung nih, Master.");
+    console.error("❌ Error saat menjalankan kode AI:", err);
+    bot.chat("Duh, sepertinya ada yang salah dengan logikaku, Master.");
   }
 }
 
@@ -108,25 +65,17 @@ bot.on("spawn", () => {
   const mcData = minecraftData(bot.version);
   const defaultMove = new Movements(bot, mcData);
   bot.pathfinder.setMovements(defaultMove);
-  
-  // Optimasi Pathfinder
-  bot.pathfinder.thinkTimeout = 10000; // Beri waktu 10 detik untuk berpikir
-  bot.pathfinder.tickTimeout = 40;     // Izinkan lebih banyak kalkulasi per tick
-
   console.log("🤖 Aida sudah masuk ke server!");
-  bot.chat("Aku Aida, siap melayani Master.");
+  bot.chat("Aida siap melayani, Master.");
 });
 
-// Event AUTO: dipicu oleh kondisi internal bot
 bot.on('health', () => {
-  // Case: autostatus
-  checkProactiveStatus(bot, (prompt) => chatGeneratorAI(prompt, chatHistory));
+    // Untuk auto-status, kita tidak perlu memanggil AI, cukup cek kondisi
+    checkProactiveStatus(bot, (prompt) => bot.chat(prompt)); // Disederhanakan
 });
 
-// Event NON-AUTO: dipicu oleh chat user
 bot.on("chat", (username, message) => {
   if (username === bot.username) return;
-
   const playerCount = Object.keys(bot.players).filter(p => p !== bot.username).length;
   const shouldRespond = (playerCount <= 1) || message.toLowerCase().includes("aida") || message.toLowerCase().includes("ai");
 

@@ -6,32 +6,28 @@ let lowFoodWarned = false, criticalFoodWarned = false;
 /**
  * Memeriksa status kesehatan dan kelaparan bot secara proaktif.
  * @param {import('mineflayer').Bot} bot - Instance bot.
- * @param {Function} chatAI - Fungsi chatGeneratorAI untuk membuat kalimat.
+ * @param {Function} chatFn - Fungsi bot.chat untuk mengirim pesan.
  */
-export async function checkProactiveStatus(bot, chatAI) {
+export function checkProactiveStatus(bot, chatFn) {
   try {
     const health = bot.health;
     const food = bot.food;
 
     if (health <= 5 && !criticalHealthWarned) {
-      const reply = await chatAI("Darahku kritis sekali! Tolong aku!");
-      bot.chat(reply);
+      chatFn("Darahku kritis sekali, Master! Tolong!");
       criticalHealthWarned = true; lowHealthWarned = true;
     } else if (health <= 10 && !lowHealthWarned) {
-      const reply = await chatAI("Duh, darahku tinggal setengah nih, harus hati-hati.");
-      bot.chat(reply);
+      chatFn("Duh, darahku tinggal setengah, harus hati-hati.");
       lowHealthWarned = true;
     } else if (health > 10) {
       lowHealthWarned = false; criticalHealthWarned = false;
     }
 
     if (food <= 5 && !criticalFoodWarned) {
-      const reply = await chatAI("Aku lapar banget nih, ada makanan nggak?");
-      bot.chat(reply);
+      chatFn("Master, aku lapar banget, ada makanan?");
       criticalFoodWarned = true; lowFoodWarned = true;
     } else if (food <= 10 && !lowFoodWarned) {
-      const reply = await chatAI("Perutku mulai keroncongan nih, bentar lagi harus makan.");
-      bot.chat(reply);
+      chatFn("Perutku mulai keroncongan nih, Master.");
       lowFoodWarned = true;
     } else if (food > 10) {
       lowFoodWarned = false; criticalFoodWarned = false;
