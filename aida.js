@@ -5,8 +5,9 @@ const { pathfinder, Movements } = pkg;
 import minecraftData from "minecraft-data";
 import { plugin as collectBlockPlugin } from 'mineflayer-collectblock';
 
+// [PERBAIKAN] Impor dari file utilitas dan pustaka skill yang benar
 import { codeGeneratorAI } from "./utils/ai_handler.js";
-import { skills } from "./features/skill_library.js"; // Impor pustaka skill
+import { skills } from "./features/skill_library.js";
 import { checkProactiveStatus } from "./auto_tasks/auto_status.js";
 
 // === KONFIGURASI ===

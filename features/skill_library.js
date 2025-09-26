@@ -1,5 +1,6 @@
 // features/skill_library.js
-import { goals } from 'mineflayer-pathfinder';
+import pkg from 'mineflayer-pathfinder';
+const { goals } = pkg;
 import minecraftData from 'minecraft-data';
 
 // Pustaka ini berisi semua fungsi dasar yang bisa dipanggil oleh AI.
