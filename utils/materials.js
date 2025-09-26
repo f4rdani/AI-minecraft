@@ -1,4 +1,4 @@
-// materials.js
+// utils/materials.js (Kamus Material)
 import minecraftData from 'minecraft-data';
 
 // Kamus untuk menerjemahkan bahasa sehari-hari ke nama item teknis.
@@ -51,3 +51,4 @@ export function translateAliasToBestBlock(bot, alias) {
 
   return closestBlock ? closestBlock.name : null;
 }
+

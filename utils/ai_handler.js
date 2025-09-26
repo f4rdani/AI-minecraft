@@ -1,4 +1,4 @@
-// utils/ai_handler.js (Versi dengan Klasifikasi Lebih Baik & Anti-Crash)
+// utils/ai_handler.js (Modul Otak AI)
 import fetch from "node-fetch";
 
 const API_URL = "http://localhost:1234/v1/chat/completions";
@@ -11,21 +11,25 @@ const MODEL = "google/gemma-3n-e4b";
  * @returns {Promise<object>} - Objek perintah.
  */
 export async function commandClassifierAI(message, history = []) {
-  // [PERBAIKAN] Prompt dibuat lebih detail dengan banyak contoh
   const systemPrompt = `
-    Tugas utamamu adalah mengklasifikasikan pesan user menjadi sebuah aksi dalam format JSON.
+    Anda adalah AI yang sangat teliti. Tugas Anda adalah mengklasifikasikan pesan dari 'user' menjadi SATU aksi dalam format JSON.
     Gunakan riwayat chat untuk konteks. Fokus HANYA pada pesan user terakhir.
-    Pilihan "action": "follow_player", "stop_moving", "report_status", "list_inventory", "collect_blocks", "chat".
 
-    CONTOH PENTING:
-    - "ikut aku", "sini dong", "kemari" -> {"action": "follow_player"}
-    - "diam di situ", "berhenti", "tunggu" -> {"action": "stop_moving"}
-    - "gimana kondisi kamu?", "cek status" -> {"action": "report_status"}
-    - "apa saja itemu?", "lihatin barangmu", "kau punya apa saja" -> {"action": "list_inventory"}
-    - "tolong carikan 15 batu", "ambil kayu" -> {"action": "collect_blocks", "item": "batu", "count": 15}
-    - "halo", "makasih ya", "oke" -> {"action": "chat"}
+    Pilihan aksi dan kata kuncinya:
+    - "follow_player": Jika user meminta untuk diikuti, datang, kemari, sini.
+    - "stop_moving": Jika user meminta untuk berhenti, diam, tunggu.
+    - "list_inventory": Jika user bertanya tentang item, barang, atau isi tas. INI BUKAN PERINTAH MENCARI BARANG.
+    - "collect_blocks": HANYA JIKA user secara eksplisit meminta untuk MENCARI, MENGAMBIL, atau MENAMBANG blok. Ekstrak nama 'item' dan 'count'.
+    - "report_status": Jika user bertanya soal kondisi, darah, lapar, atau status.
+    - "chat": Untuk semua percakapan lain, sapaan, atau jika Anda tidak yakin.
 
-    Jika tidak ada perintah jelas, anggap itu "chat". Balas HANYA dengan JSON.
+    CONTOH:
+    - User: "ai sini dong" -> {"action": "follow_player"}
+    - User: "apa saja barang di tasmu?" -> {"action": "list_inventory"}
+    - User: "sudah, berhenti dulu" -> {"action": "stop_moving"}
+    - User: "tolong carikan 15 batu" -> {"action": "collect_blocks", "item": "batu", "count": 15}
+
+    PERINGATAN: Balasanmu HARUS dan HANYA BOLEH berupa SATU blok JSON. JANGAN tambahkan teks, penjelasan, atau JSON lain.
   `;
   const messages = [
     { role: "system", content: systemPrompt },
@@ -35,18 +39,17 @@ export async function commandClassifierAI(message, history = []) {
 
   const response = await fetch(API_URL, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: MODEL, messages, temperature: 0.1, max_tokens: 60 }),
+    body: JSON.stringify({ model: MODEL, messages, temperature: 0.0, max_tokens: 60 }),
   });
   const data = await response.json();
 
-  // [PERBAIKAN] Jaring pengaman untuk mencegah crash jika server AI error
   if (!data.choices || data.choices.length === 0) {
     console.error("❌ AI Classifier menerima respons tidak valid dari API:", data);
-    return { action: "chat" }; // Kembalikan aksi 'chat' sebagai default yang aman
+    return { action: "chat" };
   }
 
   const content = data.choices[0].message.content;
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  const jsonMatch = content.match(/\{[\s\S]*?\}/); 
   return JSON.parse(jsonMatch ? jsonMatch[0] : `{"action":"chat"}`);
 }
 
@@ -73,5 +76,10 @@ export async function chatGeneratorAI(prompt, history = []) {
     body: JSON.stringify({ model: MODEL, messages, temperature: 0.8, max_tokens: 80 }),
   });
   const data = await response.json();
+  if (!data.choices || data.choices.length === 0) {
+      console.error("❌ AI Generator menerima respons tidak valid dari API:", data);
+      return "Maaf, Master. Aku sedikit bingung.";
+  }
   return data.choices[0].message.content.trim();
 }
+
