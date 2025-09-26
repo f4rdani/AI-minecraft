@@ -39,25 +39,33 @@ export const skills = {
     
     /** Menambang sejumlah blok tertentu. */
     mineBlock: async (bot, itemName, count = 1) => {
+        bot.chat(`Baik, aku akan coba cari dan tambang ${count} ${itemName}.`);
         const mcData = minecraftData(bot.version);
         const blockType = mcData.blocksByName[itemName];
         if (!blockType) return `Aku tidak tahu blok bernama '${itemName}'.`;
 
-        const block = await bot.findBlock({ matching: blockType.id, maxDistance: 64 });
-        if (!block) return `Aku tidak menemukan ${itemName} di sekitar sini.`;
-
-        await bot.collectBlock.collect(block, { count: count });
-        return `Tugas selesai, berhasil mengumpulkan ${count} ${itemName}.`;
+        try {
+            await bot.collectBlock.collect(blockType.id, { count: count });
+            return `Tugas selesai, berhasil mengumpulkan ${count} ${itemName}.`;
+        } catch (err) {
+            console.error(err);
+            return `Maaf Master, aku tidak menemukan ${itemName} di sekitar sini atau jalannya terhalang.`;
+        }
     },
 
     /** Membuat item. */
     craftItem: async (bot, itemName, count = 1) => {
         const mcData = minecraftData(bot.version);
-        const item = mcData.recipesFor(mcData.itemsByName[itemName].id, null, 1, null)[0];
+        const item = mcData.recipesFor(mcData.itemsByName[itemName].id, null, 1, true)[0];
         if (!item) return `Aku tidak tahu cara membuat ${itemName}.`;
         
-        await bot.craft(item, count, null);
-        return `Berhasil membuat ${count} ${itemName}.`;
+        try {
+            await bot.craft(item, count, null);
+            return `Berhasil membuat ${count} ${itemName}.`;
+        } catch (err) {
+            console.error(err);
+            return `Gagal membuat ${itemName}, mungkin bahannya kurang.`;
+        }
     },
     
     /** Menyerang monster atau hewan terdekat. */
@@ -75,8 +83,16 @@ export const skills = {
         
         const item = bot.inventory.items().find(i => i.name.includes(itemName));
         if (!item) return `Maaf, aku tidak punya ${itemName}.`;
+        
+        const amountToGive = Math.min(count, item.count);
 
-        await bot.toss(item.type, null, count);
-        return `Ini ${count} ${itemName} untukmu, Master ${username}.`;
+        try {
+            await bot.toss(item.type, null, amountToGive);
+            return `Ini ${amountToGive} ${itemName} untukmu, Master ${username}.`;
+        } catch (err) {
+            console.error(err);
+            return `Gagal memberikan ${itemName}.`;
+        }
     },
 };
+
